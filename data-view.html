@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data View - GSS Exam System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .data-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #667eea;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-box .number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-box .label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .search-box {
+            margin-bottom: 20px;
+        }
+        .table-responsive {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        table {
+            margin: 0;
+        }
+        table thead {
+            position: sticky;
+            top: 0;
+            background: #667eea;
+            color: white;
+        }
+        table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+        .btn-group {
+            margin-bottom: 20px;
+        }
+        .nav-tabs .nav-link {
+            color: #667eea;
+            border: none;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-tabs .nav-link.active {
+            background-color: transparent;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+        .action-buttons {
+            gap: 10px;
+        }
+        .action-buttons button {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+        .pagination {
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="data-container">
+        <div class="header">
+            <div>
+                <h1>📊 Database Data View</h1>
+                <small class="text-muted">View and manage all records</small>
+            </div>
+            <button class="btn btn-primary" onclick="loadAllData()">🔄 Refresh</button>
+        </div>
+
+        <div class="stats" id="statsContainer">
+            <div class="stat-box">
+                <div class="number" id="studentCount">0</div>
+                <div class="label">Students</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="classSubjectCount">0</div>
+                <div class="label">Class Subjects</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="marksCount">0</div>
+                <div class="label">Marks Records</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="usersCount">0</div>
+                <div class="label">Users</div>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="students-tab" onclick="showTab('students')">Students</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="subjects-tab" onclick="showTab('subjects')">Class Subjects</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="marks-tab" onclick="showTab('marks')">Marks</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="users-tab" onclick="showTab('users')">Users</button>
+            </li>
+        </ul>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" class="form-control" placeholder="🔍 Search..." onkeyup="filterTable()">
+        </div>
+
+        <div class="action-buttons mb-3">
+            <button class="btn btn-success btn-sm" onclick="exportToCSV()">📥 Export to CSV</button>
+            <button class="btn btn-info btn-sm" onclick="exportToJSON()">📥 Export to JSON</button>
+            <button class="btn btn-warning btn-sm" onclick="printTable()">🖨️ Print</button>
+        </div>
+
+        <!-- Students Tab -->
+        <div id="students-content" class="tab-content">
+            <div class="loading" id="students-loading">Loading students...</div>
+            <div class="table-responsive" id="students-table" style="display:none;">
+                <table class="table table-sm table-striped" id="studentsTable">
+                    <thead>
+                        <tr>
+                            <th>Adm No</th>
+                            <th>Name</th>
+                            <th>Father Name</th>
+                            <th>Class</th>
+                            <th>Roll No</th>
+                            <th>Contact 1</th>
+                            <th>Contact 2</th>
+                            <th>Address 1</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Class Subjects Tab -->
+        <div id="subjects-content" class="tab-content" style="display:none;">
+            <div class="loading" id="subjects-loading">Loading class subjects...</div>
+            <div class="table-responsive" id="subjects-table" style="display:none;">
+                <table class="table table-sm table-striped" id="subjectsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Class</th>
+                            <th>Subject Code</th>
+                            <th>Subject Name</th>
+                            <th>Teacher</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subjectsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Marks Tab -->
+        <div id="marks-content" class="tab-content" style="display:none;">
+            <div class="loading" id="marks-loading">Loading marks...</div>
+            <div class="table-responsive" id="marks-table" style="display:none;">
+                <table class="table table-sm table-striped" id="marksTable">
+                    <thead>
+                        <tr>
+                            <th>Adm No</th>
+                            <th>Subject 1</th>
+                            <th>Subject 2</th>
+                            <th>Subject 3</th>
+                            <th>Subject 4</th>
+                            <th>Subject 5</th>
+                            <th>Subject 6</th>
+                            <th>Subject 7</th>
+                            <th>Subject 8</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marksBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users-content" class="tab-content" style="display:none;">
+            <div class="loading" id="users-loading">Loading users...</div>
+            <div class="table-responsive" id="users-table" style="display:none;">
+                <table class="table table-sm table-striped" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>Mobile</th>
+                            <th>Role</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/config.js"></script>
+
+    <script>
+        let allData = {
+            students: [],
+            subjects: [],
+            marks: [],
+            users: []
+        };
+
+        async function loadAllData() {
+            try {
+                console.log("Loading all data from Firestore...");
+
+                // Load Students
+                const studentsSnap = await firebase.firestore().collection('students').get();
+                allData.students = studentsSnap.docs.map(doc => doc.data());
+                console.log("Students loaded:", allData.students.length);
+
+                // Load Class Subjects
+                const subjectsSnap = await firebase.firestore().collection('classSubjects').get();
+                allData.subjects = subjectsSnap.docs.map(doc => doc.data());
+                console.log("Subjects loaded:", allData.subjects.length);
+
+                // Load Marks
+                const marksSnap = await firebase.firestore().collection('marks').get();
+                allData.marks = marksSnap.docs.map(doc => doc.data());
+                console.log("Marks loaded:", allData.marks.length);
+
+                // Load Users
+                const usersSnap = await firebase.firestore().collection('users').get();
+                allData.users = usersSnap.docs.map(doc => doc.data());
+                console.log("Users loaded:", allData.users.length);
+
+                // Update stats
+                document.getElementById('studentCount').textContent = allData.students.length;
+                document.getElementById('classSubjectCount').textContent = allData.subjects.length;
+                document.getElementById('marksCount').textContent = allData.marks.length;
+                document.getElementById('usersCount').textContent = allData.users.length;
+
+                // Display first tab
+                displayStudents();
+                document.getElementById('students-loading').style.display = 'none';
+                document.getElementById('students-table').style.display = 'block';
+            } catch (error) {
+                console.error("Error loading data:", error);
+                alert("Error loading data: " + error.message);
+            }
+        }
+
+        function displayStudents() {
+            const tbody = document.getElementById('studentsBody');
+            tbody.innerHTML = '';
+            allData.students.forEach(student => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${student.adm_no || '-'}</td>
+                    <td>${student.name || '-'}</td>
+                    <td>${student.father_name || '-'}</td>
+                    <td>${student.class2025 || '-'}</td>
+                    <td>${student.roll2025 || '-'}</td>
+                    <td>${student.contact1 || '-'}</td>
+                    <td>${student.contact2 || '-'}</td>
+                    <td>${student.add1 || '-'}</td>
+                `;
+            });
+        }
+
+        function displaySubjects() {
+            const tbody = document.getElementById('subjectsBody');
+            tbody.innerHTML = '';
+            allData.subjects.forEach(subject => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${subject.id || '-'}</td>
+                    <td>${subject.class || '-'}</td>
+                    <td>${subject.subjectCode || '-'}</td>
+                    <td>${subject.subjectName || '-'}</td>
+                    <td>${subject.teacher || '-'}</td>
+                `;
+            });
+        }
+
+        function displayMarks() {
+            const tbody = document.getElementById('marksBody');
+            tbody.innerHTML = '';
+            allData.marks.forEach(mark => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${mark.adm_no || '-'}</td>
+                    <td>${mark.sub1 || '-'}</td>
+                    <td>${mark.sub2 || '-'}</td>
+                    <td>${mark.sub3 || '-'}</td>
+                    <td>${mark.sub4 || '-'}</td>
+                    <td>${mark.sub5 || '-'}</td>
+                    <td>${mark.sub6 || '-'}</td>
+                    <td>${mark.sub7 || '-'}</td>
+                    <td>${mark.sub8 || '-'}</td>
+                `;
+            });
+        }
+
+        function displayUsers() {
+            const tbody = document.getElementById('usersBody');
+            tbody.innerHTML = '';
+            allData.users.forEach(user => {
+                let createdDate = '-';
+                if (user.createdAt) {
+                    try {
+                        // Handle Firebase Timestamp
+                        if (user.createdAt.toDate) {
+                            createdDate = new Date(user.createdAt.toDate()).toLocaleDateString();
+                        } else if (typeof user.createdAt === 'string') {
+                            createdDate = new Date(user.createdAt).toLocaleDateString();
+                        } else if (typeof user.createdAt === 'number') {
+                            createdDate = new Date(user.createdAt).toLocaleDateString();
+                        }
+                    } catch (e) {
+                        createdDate = user.createdAt;
+                    }
+                }
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${user.mobile || '-'}</td>
+                    <td>${user.role || 'teacher'}</td>
+                    <td>${createdDate}</td>
+                `;
+            });
+        }
+
+        function showTab(tab) {
+            // Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(tab + '-content').style.display = 'block';
+            document.getElementById(tab + '-tab').classList.add('active');
+
+            // Load data for selected tab
+            if (tab === 'students') displayStudents();
+            else if (tab === 'subjects') displaySubjects();
+            else if (tab === 'marks') displayMarks();
+            else if (tab === 'users') displayUsers();
+        }
+
+        function filterTable() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const activeTab = document.querySelector('.nav-link.active').id.replace('-tab', '');
+            
+            let tableBody;
+            if (activeTab === 'students') tableBody = document.getElementById('studentsBody');
+            else if (activeTab === 'subjects') tableBody = document.getElementById('subjectsBody');
+            else if (activeTab === 'marks') tableBody = document.getElementById('marksBody');
+            else if (activeTab === 'users') tableBody = document.getElementById('usersBody');
+
+            if (!tableBody) return;
+
+            const rows = tableBody.getElementsByTagName('tr');
+            for (let row of rows) {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? '' : 'none';
+            }
+        }
+
+        function exportToCSV() {
+            const activeTab = document.querySelector('.nav-link.active').id.replace('-tab', '');
+            let data = [];
+            let headers = [];
+
+            if (activeTab === 'students') {
+                headers = ['Adm No', 'Name', 'Father Name', 'Class', 'Roll No', 'Contact 1', 'Contact 2', 'Address 1'];
+                data = allData.students.map(s => [
+                    s.adm_no, s.name, s.father_name, s.class2025, s.roll2025, s.contact1, s.contact2, s.add1
+                ]);
+            } else if (activeTab === 'subjects') {
+                headers = ['ID', 'Class', 'Subject Code', 'Subject Name', 'Teacher'];
+                data = allData.subjects.map(s => [s.id, s.class, s.subjectCode, s.subjectName, s.teacher]);
+            } else if (activeTab === 'marks') {
+                headers = ['Adm No', 'Sub1', 'Sub2', 'Sub3', 'Sub4', 'Sub5', 'Sub6', 'Sub7', 'Sub8'];
+                data = allData.marks.map(m => [m.adm_no, m.sub1, m.sub2, m.sub3, m.sub4, m.sub5, m.sub6, m.sub7, m.sub8]);
+            } else if (activeTab === 'users') {
+                headers = ['Mobile', 'Role', 'Created'];
+                data = allData.users.map(u => [u.mobile, u.role || 'teacher', u.createdAt || '-']);
+            }
+
+            let csv = headers.join(',') + '\n';
+            data.forEach(row => csv += row.map(cell => `"${cell}"`).join(',') + '\n');
+
+            downloadFile(csv, `${activeTab}-export.csv`, 'text/csv');
+        }
+
+        function exportToJSON() {
+            const activeTab = document.querySelector('.nav-link.active').id.replace('-tab', '');
+            let data = {};
+            if (activeTab === 'students') data = allData.students;
+            else if (activeTab === 'subjects') data = allData.subjects;
+            else if (activeTab === 'marks') data = allData.marks;
+            else if (activeTab === 'users') data = allData.users;
+
+            downloadFile(JSON.stringify(data, null, 2), `${activeTab}-export.json`, 'application/json');
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+        }
+
+        function printTable() {
+            window.print();
+        }
+
+        // Load data on page load
+        window.onload = loadAllData;
+    </script>
+</body>
+</html>

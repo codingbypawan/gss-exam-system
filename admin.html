@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSS Exam System - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .admin-container {
+            max-width: 900px;
+            margin: 50px auto;
+        }
+        .card {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .btn-primary {
+            background-color: #0066cc;
+            border-color: #0066cc;
+        }
+        .btn-primary:hover {
+            background-color: #0052a3;
+        }
+        .status-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container admin-container">
+        <div class="row">
+            <div class="col-md-12">
+                <h1 class="mb-4">GSS Exam System - Admin Panel</h1>
+                
+                <!-- User Management Section -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5>User Management</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="userMobile" class="form-label">Mobile Number</label>
+                            <input type="text" class="form-control" id="userMobile" placeholder="e.g., 9919199848" maxlength="10">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="userPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="userPassword" placeholder="Enter password">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="userRole" class="form-label">Role</label>
+                            <select class="form-select" id="userRole">
+                                <option value="teacher">Teacher</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="createUser()">Create User</button>
+                        <div id="userStatus"></div>
+                    </div>
+                </div>
+
+                <!-- Data Import Section -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5>Data Import to Firestore</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Import data from JSON files to Firestore collections.</p>
+                        <div class="mb-3">
+                            <button class="btn btn-success" onclick="importStudents()">Import Students</button>
+                            <button class="btn btn-success ms-2" onclick="importClassSubjects()">Import Class Subjects</button>
+                            <button class="btn btn-success ms-2" onclick="importExams()">Import Exam Data (HY 2025)</button>
+                        </div>
+                        <div id="importStatus"></div>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5>System Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>User: <strong id="currentUser">Not logged in</strong></p>
+                        <p>Database: <strong id="dbStatus">Checking...</strong></p>
+                        <p><small>Admin credentials: <br>Mobile: 9919199848 | Password: password123</small></p>
+                        <button class="btn btn-warning" onclick="adminLogout()">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
