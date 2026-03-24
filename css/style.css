@@ -219,6 +219,38 @@ body {
     vertical-align: middle;
 }
 
+/* Mobile-responsive table adjustments */
+@media (max-width: 576px) {
+    .table {
+        font-size: 11px;
+    }
+    
+    .table thead th {
+        padding: 6px 4px;
+        font-size: 10px;
+    }
+    
+    .table td {
+        padding: 6px 4px;
+    }
+    
+    .table-responsive {
+        border-radius: var(--border-radius);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .header-row-1 th {
+        font-size: 11px;
+        padding: 8px 2px;
+    }
+    
+    .header-row-2 th {
+        font-size: 9px;
+        padding: 4px 2px;
+    }
+}
+
 .table-warning {
     background-color: #fff3cd !important;
 }

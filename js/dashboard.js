@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = getCurrentUser();
     document.getElementById('userName').textContent = user.name;
     
+    // Show Admin Panel link if user is admin
+    if (user.role === 'admin') {
+        document.getElementById('adminLinkContainer').style.display = 'block';
+    }
+    
     loadClassSubjects();
     setupEventListeners();
     setMode('entry'); // Initialize mode to show subject dropdown

@@ -5,7 +5,15 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = 'index.html';
         return;
     }
-    document.getElementById('currentUser').textContent = user.mobile;
+    
+    // Only allow admin users to access this page
+    if (user.role !== 'admin') {
+        alert('Access denied. Admin privileges required.');
+        window.location.href = 'dashboard.html';
+        return;
+    }
+    
+    document.getElementById('currentUser').textContent = user.name || user.mobileNo;
     checkDatabaseConnection();
 });
 

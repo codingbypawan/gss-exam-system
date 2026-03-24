@@ -36,12 +36,9 @@ async function handleLogin(e) {
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         localStorage.setItem('lastLogin', new Date().toISOString());
 
-        // Redirect based on role
-        if (userData.role === 'admin') {
-            window.location.href = 'admin.html';
-        } else {
-            window.location.href = 'dashboard.html';
-        }
+        // Redirect to dashboard (both admin and teachers go to dashboard)
+        // Admin can access admin panel from dashboard
+        window.location.href = 'dashboard.html';
 
     } catch (error) {
         console.error('Login error:', error);
@@ -54,12 +51,8 @@ async function handleLogin(e) {
 window.addEventListener('load', () => {
     const user = localStorage.getItem('currentUser');
     if (user && window.location.pathname.includes('index.html')) {
-        const userData = JSON.parse(user);
-        if (userData.role === 'admin') {
-            window.location.href = 'admin.html';
-        } else {
-            window.location.href = 'dashboard.html';
-        }
+        // Redirect logged-in users to dashboard
+        window.location.href = 'dashboard.html';
     }
 });
 
