@@ -22,7 +22,7 @@ function getExamLabel(examCode) {
 
 // Get max marks for a class
 function getMaxMarksForClass(classCode) {
-    return classCode === 'IX A' ? 70 : 50;
+    return classCode === 'IX A' ? 100 : 50;
 }
 
 // Validate mark input

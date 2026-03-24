@@ -192,7 +192,7 @@ function markAbsent() {
 }
 
 function getMaxMarks() {
-    return selectedClass === 'IX A' ? 70 : 50;
+    return selectedClass === 'IX A' ? 100 : 50;
 }
 
 function getExamLabel(examCode) {
