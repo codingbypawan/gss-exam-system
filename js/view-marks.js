@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadSubjects();
         await loadMarks();
         updateTableHeader();
+        hideExtraSubjectColumns();
         displayMarks(allMarks);
         setupSearch();
     } catch (error) {
@@ -126,7 +127,8 @@ function updateTableHeader() {
     
     // Update total header with correct max marks
     const maxMarks = getMaxMarksForClass(selectedClass);
-    const maxTotal = maxMarks * 8;
+    const numSubjects = getNumSubjectsForClass(selectedClass);
+    const maxTotal = maxMarks * numSubjects;
     const totalHeader = document.getElementById('totalHeader');
     if (totalHeader) {
         totalHeader.textContent = `Total (Out of ${maxTotal})`;
@@ -136,9 +138,10 @@ function updateTableHeader() {
 function displayMarks(marks) {
     const tableBody = document.getElementById('tableBody');
     
-    // Get correct max marks for the selected class
+    // Get correct max marks and number of subjects for the selected class
     const maxMarks = getMaxMarksForClass(selectedClass);
-    const maxTotal = maxMarks * 8;
+    const numSubjects = getNumSubjectsForClass(selectedClass);
+    const maxTotal = maxMarks * numSubjects;
 
     if (marks.length === 0) {
         tableBody.innerHTML = '<tr><td colSpan="11" class="text-center text-muted">No marks entered yet</td></tr>';
@@ -150,7 +153,7 @@ function displayMarks(marks) {
         let marksCount = 0;
         let allAbsent = true;
 
-        for (let i = 1; i <= 8; i++) {
+        for (let i = 1; i <= numSubjects; i++) {
             const mark = m[`sub${i}`];
             if (mark !== undefined && mark !== null && mark !== '') {
                 const markValue = parseInt(mark);
@@ -164,21 +167,19 @@ function displayMarks(marks) {
 
         const rowClass = total === 0 && marksCount === 0 ? 'table-secondary' : (allAbsent ? 'table-warning' : '');
 
+        // Build marks cells based on number of subjects
+        let marksCells = '';
+        for (let i = 1; i <= numSubjects; i++) {
+            marksCells += `<td class="text-center">${formatMark(m[`sub${i}`], maxMarks)}</td>`;
+        }
+
         return `
             <tr class="${rowClass}">
                 <td class="fw-bold">${m.roll || '-'}</td>
                 <td>${m.name || '-'}</td>
-                <td class="text-center">${formatMark(m.sub1, maxMarks)}</td>
-                <td class="text-center">${formatMark(m.sub2, maxMarks)}</td>
-                <td class="text-center">${formatMark(m.sub3, maxMarks)}</td>
-                <td class="text-center">${formatMark(m.sub4, maxMarks)}</td>
-                <td class="text-center">${formatMark(m.sub5, maxMarks)}</td>
-                <td class="text-center">${formatMark(m.sub6, maxMarks)}</td>
-                <td class="text-center">${formatMark(m.sub7, maxMarks)}</td>
-                <td class="text-center">${formatMark(m.sub8, maxMarks)}</td>
+                ${marksCells}
                 <td class="text-center fw-bold">${marksCount > 0 ? total + '/' + maxTotal : '-'}</td>
-            </tr>
-        `;
+            </tr>`;
     }).join('');
 }
 
@@ -208,6 +209,21 @@ function setupSearch() {
 
         displayMarks(filteredMarks);
     });
+}
+
+function hideExtraSubjectColumns() {
+    const numSubjects = getNumSubjectsForClass(selectedClass);
+    const headerSpan = document.getElementById('marksHeaderColSpan');
+    const s7Header = document.getElementById('s7Header');
+    const s8Header = document.getElementById('s8Header');
+    
+    if (numSubjects === 6) {
+        // Hide S7 and S8 columns for IX A
+        if (s7Header) s7Header.style.display = 'none';
+        if (s8Header) s8Header.style.display = 'none';
+        // Update colSpan to 6 instead of 8
+        if (headerSpan) headerSpan.colSpan = 6;
+    }
 }
 
 function getExamLabel(examCode) {

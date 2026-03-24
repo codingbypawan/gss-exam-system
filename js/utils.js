@@ -25,6 +25,11 @@ function getMaxMarksForClass(classCode) {
     return classCode === 'IX A' ? 100 : 50;
 }
 
+// Get number of subjects for a class
+function getNumSubjectsForClass(classCode) {
+    return classCode === 'IX A' ? 6 : 8;
+}
+
 // Validate mark input
 function isValidMark(mark, maxMarks) {
     const val = parseInt(mark);
