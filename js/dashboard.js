@@ -16,9 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('adminLinkContainer').style.display = 'block';
     }
     
+    // Hide marks entry buttons for non-admin users
+    if (user.role !== 'admin') {
+        document.getElementById('btnEntry').style.display = 'none';
+        document.getElementById('btnEntryAll').style.display = 'none';
+    }
+    
     loadClassSubjects();
     setupEventListeners();
-    setMode('entry'); // Initialize mode to show subject dropdown
+    setMode(user.role === 'admin' ? 'entry' : 'view');
 });
 
 function setupEventListeners() {

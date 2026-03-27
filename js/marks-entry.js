@@ -12,6 +12,13 @@ let currentMarks = {};
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
     
+    const user = getCurrentUser();
+    if (!user || user.role !== 'admin') {
+        alert('Access denied. Only admins can enter marks.');
+        window.location.href = 'dashboard.html';
+        return;
+    }
+    
     selectedExam = sessionStorage.getItem('selectedExam');
     selectedClass = sessionStorage.getItem('selectedClass');
     selectedSubjectCode = sessionStorage.getItem('selectedSubjectCode');
