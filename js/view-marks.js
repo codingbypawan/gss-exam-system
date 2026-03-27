@@ -226,12 +226,18 @@ function hideExtraSubjectColumns() {
     const s7Header = document.getElementById('s7Header');
     const s8Header = document.getElementById('s8Header');
     
-    if (numSubjects === 6) {
-        // Hide S7 and S8 columns for IX A
+    // Reset visibility first
+    if (s7Header) s7Header.style.display = '';
+    if (s8Header) s8Header.style.display = '';
+    if (headerSpan) headerSpan.colSpan = numSubjects;
+
+    if (numSubjects <= 6) {
+        // Hide S7 and S8 columns for 6-subject classes
         if (s7Header) s7Header.style.display = 'none';
         if (s8Header) s8Header.style.display = 'none';
-        // Update colSpan to 6 instead of 8
-        if (headerSpan) headerSpan.colSpan = 6;
+    } else if (numSubjects === 7) {
+        // Hide S8 column for LKG/UKG (7 subjects)
+        if (s8Header) s8Header.style.display = 'none';
     }
 }
 

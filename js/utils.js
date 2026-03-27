@@ -27,7 +27,9 @@ function getMaxMarksForClass(classCode) {
 
 // Get number of subjects for a class
 function getNumSubjectsForClass(classCode) {
-    return classCode === 'IX A' ? 6 : 8;
+    if (classCode === 'IX A' || classCode === 'X A') return 6;
+    if (classCode.startsWith('LKG') || classCode.startsWith('UKG')) return 7;
+    return 8;
 }
 
 // Validate mark input
@@ -37,9 +39,10 @@ function isValidMark(mark, maxMarks) {
 }
 
 // Calculate total marks
-function calculateTotal(marks, maxMarks) {
+function calculateTotal(marks, maxMarks, numSubjects) {
+    const count = numSubjects || 8;
     let total = 0;
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= count; i++) {
         const mark = marks[`sub${i}`];
         if (mark && mark !== -1 && mark !== null && mark !== '') {
             total += parseInt(mark);
@@ -49,8 +52,9 @@ function calculateTotal(marks, maxMarks) {
 }
 
 // Check if all subjects have marks
-function allSubjectsHaveMarks(marks) {
-    for (let i = 1; i <= 8; i++) {
+function allSubjectsHaveMarks(marks, numSubjects) {
+    const count = numSubjects || 8;
+    for (let i = 1; i <= count; i++) {
         if (!marks[`sub${i}`] && marks[`sub${i}`] !== 0) {
             return false;
         }
