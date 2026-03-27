@@ -103,15 +103,17 @@ function loadSubjectsForClass() {
 function setMode(mode) {
     selectedMode = mode;
     document.getElementById('btnEntry').classList.toggle('active', mode === 'entry');
+    document.getElementById('btnEntryAll').classList.toggle('active', mode === 'entryAll');
     document.getElementById('btnView').classList.toggle('active', mode === 'view');
     
     const subjectSelect = document.getElementById('subjectSelect');
+    const needsSubject = (mode === 'entry' || mode === 'entryAll');
     
-    // Show subject select only for entry mode
-    document.getElementById('subjectGroupDiv').style.display = mode === 'entry' ? 'block' : 'none';
+    // Show subject select for both entry modes
+    document.getElementById('subjectGroupDiv').style.display = needsSubject ? 'block' : 'none';
     
     // Toggle required attribute based on mode
-    if (mode === 'entry') {
+    if (needsSubject) {
         subjectSelect.setAttribute('required', '');
     } else {
         subjectSelect.removeAttribute('required');
@@ -133,8 +135,8 @@ document.getElementById('dashboardForm').addEventListener('submit', (e) => {
         return;
     }
 
-    // For entry mode, require subject selection
-    if (selectedMode === 'entry') {
+    // For entry modes, require subject selection
+    if (selectedMode === 'entry' || selectedMode === 'entryAll') {
         const subjectValue = document.getElementById('subjectSelect').value;
         if (!subjectValue) {
             alert('Please select a subject for marks entry');
@@ -154,6 +156,8 @@ document.getElementById('dashboardForm').addEventListener('submit', (e) => {
     // Redirect based on mode
     if (selectedMode === 'entry') {
         window.location.href = 'marks-entry.html';
+    } else if (selectedMode === 'entryAll') {
+        window.location.href = 'marks-entry-all.html';
     } else {
         window.location.href = 'view-marks.html';
     }
