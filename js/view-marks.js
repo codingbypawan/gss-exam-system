@@ -5,6 +5,8 @@ let allMarks = [];
 let filteredMarks = [];
 let studentMap = {};
 let subjectMap = {};
+let isSortedByMarks = false;
+let showRank = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
@@ -173,12 +175,15 @@ function displayMarks(marks) {
             marksCells += `<td class="text-center">${formatMark(m[`sub${i}`], maxMarks)}</td>`;
         }
 
+        const rankCell = showRank ? `<td class="text-center fw-bold">${m._rank !== undefined ? m._rank : '-'}</td>` : '';
+
         return `
             <tr class="${rowClass}">
                 <td class="fw-bold">${m.roll || '-'}</td>
                 <td>${m.name || '-'}</td>
                 ${marksCells}
                 <td class="text-center fw-bold">${marksCount > 0 ? total + '/' + maxTotal : '-'}</td>
+                ${rankCell}
             </tr>`;
     }).join('');
 }
@@ -207,6 +212,10 @@ function setupSearch() {
             m.roll.toString().includes(query)
         );
 
+        if (isSortedByMarks) {
+            filteredMarks = assignRanks(filteredMarks);
+        }
+
         displayMarks(filteredMarks);
     });
 }
@@ -232,4 +241,67 @@ function getExamLabel(examCode) {
         'year2025': 'Yearly 2025'
     };
     return labels[examCode] || examCode;
+}
+
+// --- Sort by Marks & Rank ---
+function getStudentTotal(m) {
+    const numSubjects = getNumSubjectsForClass(selectedClass);
+    let total = 0;
+    let hasMarks = false;
+    for (let i = 1; i <= numSubjects; i++) {
+        const mark = m[`sub${i}`];
+        if (mark !== undefined && mark !== null && mark !== '') {
+            const v = parseInt(mark);
+            if (v !== -1) { total += v; }
+            hasMarks = true;
+        }
+    }
+    return hasMarks ? total : -1;
+}
+
+function assignRanks(marks) {
+    // Sort descending by total; students with no marks get no rank
+    const sorted = [...marks].sort((a, b) => getStudentTotal(b) - getStudentTotal(a));
+    let rank = 0;
+    let prevTotal = null;
+    let skip = 0;
+    sorted.forEach((m) => {
+        const t = getStudentTotal(m);
+        if (t < 0) { m._rank = '-'; return; }
+        skip++;
+        if (t !== prevTotal) { rank = skip; prevTotal = t; }
+        m._rank = rank;
+    });
+    return sorted;
+}
+
+function toggleSortByMarks() {
+    isSortedByMarks = !isSortedByMarks;
+    showRank = isSortedByMarks;
+
+    const btn = document.getElementById('sortRankBtn');
+    btn.classList.toggle('active', isSortedByMarks);
+    btn.classList.toggle('btn-outline-primary', !isSortedByMarks);
+    btn.classList.toggle('btn-primary', isSortedByMarks);
+
+    // Show/hide rank column headers
+    document.getElementById('rankColHeader1').style.display = showRank ? '' : 'none';
+    document.getElementById('rankColHeader2').style.display = showRank ? '' : 'none';
+
+    if (isSortedByMarks) {
+        filteredMarks = assignRanks(filteredMarks);
+    } else {
+        // Reset to roll order
+        filteredMarks.forEach(m => delete m._rank);
+        filteredMarks.sort((a, b) => parseInt(a.roll || 0) - parseInt(b.roll || 0));
+    }
+    displayMarks(filteredMarks);
+}
+
+// --- Print ---
+function printMarks() {
+    // Fill print header
+    document.getElementById('printExamTitle').textContent = getExamLabel(selectedExam);
+    document.getElementById('printClassTitle').textContent = 'Class: ' + selectedClass;
+    window.print();
 }
