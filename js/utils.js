@@ -15,7 +15,8 @@ function formatDate(date) {
 function getExamLabel(examCode) {
     const labels = {
         'hy2025': 'Half Yearly 2025',
-        'year2025': 'Yearly 2025'
+        'year2025': 'Yearly 2025',
+        'both2025': 'Both Exams - Aggregate 2025'
     };
     return labels[examCode] || examCode;
 }

@@ -7,12 +7,14 @@ let studentMap = {};
 let subjectMap = {};
 let isSortedByMarks = false;
 let showRank = false;
+let isBothMode = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
     
     selectedExam = sessionStorage.getItem('selectedExam');
     selectedClass = sessionStorage.getItem('selectedClass');
+    isBothMode = (selectedExam === 'both2025');
 
     if (!selectedExam || !selectedClass) {
         alert('Invalid selection. Redirecting to dashboard.');
@@ -26,9 +28,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         await loadStudents();
         await loadSubjects();
-        await loadMarks();
-        updateTableHeader();
-        hideExtraSubjectColumns();
+        if (isBothMode) {
+            await loadBothExamMarks();
+            setupBothExamTable();
+        } else {
+            await loadMarks();
+            updateTableHeader();
+            hideExtraSubjectColumns();
+        }
         displayMarks(allMarks);
         setupSearch();
     } catch (error) {
@@ -115,6 +122,97 @@ async function loadMarks() {
     }
 }
 
+async function loadBothExamMarks() {
+    try {
+        const numSubjects = getNumSubjectsForClass(selectedClass);
+        const maxMarks = getMaxMarksForClass(selectedClass);
+        const maxTotal = maxMarks * numSubjects;
+
+        // Load marks from both exams in parallel
+        const [hySnap, yearSnap] = await Promise.all([
+            db.collection('marks').doc('hy2025').collection(selectedClass).get(),
+            db.collection('marks').doc('year2025').collection(selectedClass).get()
+        ]);
+
+        const hyMap = {};
+        hySnap.forEach(doc => {
+            const data = doc.data();
+            hyMap[data.adm_no] = data;
+        });
+
+        const yearMap = {};
+        yearSnap.forEach(doc => {
+            const data = doc.data();
+            yearMap[data.adm_no] = data;
+        });
+
+        // Merge all admission numbers from both exams
+        const allAdmNos = new Set([...Object.keys(hyMap), ...Object.keys(yearMap)]);
+
+        allMarks = [];
+        allAdmNos.forEach(admNo => {
+            const student = studentMap[admNo];
+            if (!student) return;
+
+            const hyData = hyMap[admNo];
+            const yearData = yearMap[admNo];
+
+            let hyTotal = 0, yearTotal = 0;
+            let hyHasMarks = false, yearHasMarks = false;
+
+            for (let i = 1; i <= numSubjects; i++) {
+                const hyMark = hyData ? hyData[`sub${i}`] : undefined;
+                if (hyMark !== undefined && hyMark !== null && hyMark !== '') {
+                    const v = parseInt(hyMark);
+                    if (v !== -1) hyTotal += v;
+                    hyHasMarks = true;
+                }
+                const yearMark = yearData ? yearData[`sub${i}`] : undefined;
+                if (yearMark !== undefined && yearMark !== null && yearMark !== '') {
+                    const v = parseInt(yearMark);
+                    if (v !== -1) yearTotal += v;
+                    yearHasMarks = true;
+                }
+            }
+
+            allMarks.push({
+                adm_no: admNo,
+                name: student.name,
+                roll: student.roll,
+                hyTotal: hyHasMarks ? hyTotal : null,
+                yearTotal: yearHasMarks ? yearTotal : null,
+                aggregate: (hyHasMarks ? hyTotal : 0) + (yearHasMarks ? yearTotal : 0),
+                hasAnyMarks: hyHasMarks || yearHasMarks,
+                maxTotal: maxTotal
+            });
+        });
+
+        allMarks.sort((a, b) => parseInt(a.roll || 0) - parseInt(b.roll || 0));
+        filteredMarks = [...allMarks];
+        console.log(`Loaded ${allMarks.length} student aggregate marks`);
+    } catch (error) {
+        console.error('Error loading both exam marks:', error);
+        throw error;
+    }
+}
+
+function setupBothExamTable() {
+    const numSubjects = getNumSubjectsForClass(selectedClass);
+    const maxMarks = getMaxMarksForClass(selectedClass);
+    const maxTotal = maxMarks * numSubjects;
+
+    const thead = document.querySelector('#marksTable thead');
+    thead.innerHTML = `
+        <tr>
+            <th>Roll</th>
+            <th>Name</th>
+            <th class="text-center">HY Total<br><small>(Out of ${maxTotal})</small></th>
+            <th class="text-center">Yearly Total<br><small>(Out of ${maxTotal})</small></th>
+            <th class="text-center fw-bold">Aggregate<br><small>(Out of ${maxTotal * 2})</small></th>
+            <th class="text-center fw-bold" id="rankColBoth" style="display:none;">Rank</th>
+        </tr>`;
+}
+
 function updateTableHeader() {
     const subjects = JSON.parse(sessionStorage.getItem('classSubjects') || '[]');
     const headerRow = document.querySelector('thead tr:last-child');
@@ -139,16 +237,35 @@ function updateTableHeader() {
 
 function displayMarks(marks) {
     const tableBody = document.getElementById('tableBody');
-    
-    // Get correct max marks and number of subjects for the selected class
+
+    if (marks.length === 0) {
+        const cols = isBothMode ? 6 : 11;
+        tableBody.innerHTML = `<tr><td colSpan="${cols}" class="text-center text-muted">No marks entered yet</td></tr>`;
+        return;
+    }
+
+    if (isBothMode) {
+        tableBody.innerHTML = marks.map(m => {
+            const maxTotal = m.maxTotal;
+            const rankCell = showRank ? `<td class="text-center fw-bold">${m._rank !== undefined ? m._rank : '-'}</td>` : '';
+            const rowClass = !m.hasAnyMarks ? 'table-secondary' : '';
+            return `
+                <tr class="${rowClass}">
+                    <td class="fw-bold">${m.roll || '-'}</td>
+                    <td>${m.name || '-'}</td>
+                    <td class="text-center">${m.hyTotal !== null ? m.hyTotal + '/' + maxTotal : '-'}</td>
+                    <td class="text-center">${m.yearTotal !== null ? m.yearTotal + '/' + maxTotal : '-'}</td>
+                    <td class="text-center fw-bold">${m.hasAnyMarks ? m.aggregate + '/' + (maxTotal * 2) : '-'}</td>
+                    ${rankCell}
+                </tr>`;
+        }).join('');
+        return;
+    }
+
+    // Single exam mode
     const maxMarks = getMaxMarksForClass(selectedClass);
     const numSubjects = getNumSubjectsForClass(selectedClass);
     const maxTotal = maxMarks * numSubjects;
-
-    if (marks.length === 0) {
-        tableBody.innerHTML = '<tr><td colSpan="11" class="text-center text-muted">No marks entered yet</td></tr>';
-        return;
-    }
 
     tableBody.innerHTML = marks.map(m => {
         let total = 0;
@@ -244,13 +361,17 @@ function hideExtraSubjectColumns() {
 function getExamLabel(examCode) {
     const labels = {
         'hy2025': 'Half Yearly 2025',
-        'year2025': 'Yearly 2025'
+        'year2025': 'Yearly 2025',
+        'both2025': 'Both Exams - Aggregate 2025'
     };
     return labels[examCode] || examCode;
 }
 
 // --- Sort by Marks & Rank ---
 function getStudentTotal(m) {
+    if (isBothMode) {
+        return m.hasAnyMarks ? m.aggregate : -1;
+    }
     const numSubjects = getNumSubjectsForClass(selectedClass);
     let total = 0;
     let hasMarks = false;
@@ -291,8 +412,13 @@ function toggleSortByMarks() {
     btn.classList.toggle('btn-primary', isSortedByMarks);
 
     // Show/hide rank column headers
-    document.getElementById('rankColHeader1').style.display = showRank ? '' : 'none';
-    document.getElementById('rankColHeader2').style.display = showRank ? '' : 'none';
+    if (isBothMode) {
+        const rankColBoth = document.getElementById('rankColBoth');
+        if (rankColBoth) rankColBoth.style.display = showRank ? '' : 'none';
+    } else {
+        document.getElementById('rankColHeader1').style.display = showRank ? '' : 'none';
+        document.getElementById('rankColHeader2').style.display = showRank ? '' : 'none';
+    }
 
     if (isSortedByMarks) {
         filteredMarks = assignRanks(filteredMarks);
