@@ -405,7 +405,7 @@ function buildReportCard(student, subjects, numSubjects, maxMarks, rankMap, addP
                 <div class="sig-line">Class Teacher</div>
             </div>
             <div class="sig-box">
-                <img src="sign.jpeg" alt="Principal" style="height:40px; display:block; margin:0 auto 2px;">
+                <img src="sign.jpeg" alt="Principal" style="height:40px; display:block; margin:0 auto -15px; position:relative; top:-20px;">
                 <div class="sig-line">Principal</div>
             </div>
         </div>
