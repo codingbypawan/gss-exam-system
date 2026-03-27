@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isBothMode) {
             await loadBothExamMarks();
             setupBothExamTable();
+            assignRanksKeepOrder(allMarks);
+            showRank = true;
+            filteredMarks = [...allMarks];
         } else {
             await loadMarks();
             updateTableHeader();
@@ -231,7 +234,7 @@ function setupBothExamTable() {
             ${subjectHeaders}
             <th class="text-center fw-bold">Total</th>
             <th class="text-center fw-bold">%</th>
-            <th class="text-center fw-bold" id="rankColBoth" style="display:none;">Rank</th>
+            <th class="text-center fw-bold" id="rankColBoth">Rank</th>
         </tr>`;
 }
 
@@ -392,7 +395,13 @@ function setupSearch() {
             m.roll.toString().includes(query)
         );
 
-        if (isSortedByMarks) {
+        if (isBothMode) {
+            if (isSortedByMarks) {
+                filteredMarks = assignRanks(filteredMarks);
+            } else {
+                assignRanksKeepOrder(filteredMarks);
+            }
+        } else if (isSortedByMarks) {
             filteredMarks = assignRanks(filteredMarks);
         }
 
@@ -465,30 +474,46 @@ function assignRanks(marks) {
     return sorted;
 }
 
+function assignRanksKeepOrder(marks) {
+    // Assign ranks based on total but keep original array order
+    const withTotals = marks.map((m, idx) => ({ idx, total: getStudentTotal(m) }));
+    withTotals.sort((a, b) => b.total - a.total);
+    let rank = 0, prevTotal = null, skip = 0;
+    withTotals.forEach(item => {
+        if (item.total < 0) { marks[item.idx]._rank = '-'; return; }
+        skip++;
+        if (item.total !== prevTotal) { rank = skip; prevTotal = item.total; }
+        marks[item.idx]._rank = rank;
+    });
+}
+
 function toggleSortByMarks() {
     isSortedByMarks = !isSortedByMarks;
-    showRank = isSortedByMarks;
 
     const btn = document.getElementById('sortRankBtn');
     btn.classList.toggle('active', isSortedByMarks);
     btn.classList.toggle('btn-outline-primary', !isSortedByMarks);
     btn.classList.toggle('btn-primary', isSortedByMarks);
 
-    // Show/hide rank column headers
     if (isBothMode) {
-        const rankColBoth = document.getElementById('rankColBoth');
-        if (rankColBoth) rankColBoth.style.display = showRank ? '' : 'none';
+        // Both mode: rank always visible, toggle only changes sort order
+        if (isSortedByMarks) {
+            filteredMarks = assignRanks(filteredMarks);
+        } else {
+            assignRanksKeepOrder(filteredMarks);
+            filteredMarks.sort((a, b) => parseInt(a.roll || 0) - parseInt(b.roll || 0));
+        }
     } else {
+        showRank = isSortedByMarks;
         document.getElementById('rankColHeader1').style.display = showRank ? '' : 'none';
         document.getElementById('rankColHeader2').style.display = showRank ? '' : 'none';
-    }
 
-    if (isSortedByMarks) {
-        filteredMarks = assignRanks(filteredMarks);
-    } else {
-        // Reset to roll order
-        filteredMarks.forEach(m => delete m._rank);
-        filteredMarks.sort((a, b) => parseInt(a.roll || 0) - parseInt(b.roll || 0));
+        if (isSortedByMarks) {
+            filteredMarks = assignRanks(filteredMarks);
+        } else {
+            filteredMarks.forEach(m => delete m._rank);
+            filteredMarks.sort((a, b) => parseInt(a.roll || 0) - parseInt(b.roll || 0));
+        }
     }
     displayMarks(filteredMarks);
 }
