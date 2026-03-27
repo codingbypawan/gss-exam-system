@@ -230,6 +230,7 @@ function setupBothExamTable() {
             <th>Exam</th>
             ${subjectHeaders}
             <th class="text-center fw-bold">Total</th>
+            <th class="text-center fw-bold">%</th>
             <th class="text-center fw-bold" id="rankColBoth" style="display:none;">Rank</th>
         </tr>`;
 }
@@ -293,6 +294,11 @@ function displayMarks(marks) {
                 aggCells += `<td class="text-center fw-bold">${val !== null ? val : '-'}</td>`;
             }
 
+            // Percentage calculations
+            const hyPct = m.hyHasMarks ? ((m.hyTotal / maxTotal) * 100).toFixed(1) + '%' : '-';
+            const yearPct = m.yearHasMarks ? ((m.yearTotal / maxTotal) * 100).toFixed(1) + '%' : '-';
+            const aggPct = m.hasAnyMarks ? ((m.aggTotal / (maxTotal * 2)) * 100).toFixed(1) + '%' : '-';
+
             return `
                 <tr class="border-top">
                     <td rowspan="3" class="fw-bold align-middle">${m.roll || '-'}</td>
@@ -300,17 +306,20 @@ function displayMarks(marks) {
                     <td><span class="badge bg-info">HY</span></td>
                     ${hyCells}
                     <td class="text-center">${m.hyHasMarks ? m.hyTotal + '/' + maxTotal : '-'}</td>
+                    <td class="text-center">${hyPct}</td>
                     ${rankCell}
                 </tr>
                 <tr>
                     <td><span class="badge bg-primary">Yearly</span></td>
                     ${yearCells}
                     <td class="text-center">${m.yearHasMarks ? m.yearTotal + '/' + maxTotal : '-'}</td>
+                    <td class="text-center">${yearPct}</td>
                 </tr>
                 <tr class="table-warning">
                     <td><span class="badge bg-dark">Agg</span></td>
                     ${aggCells}
                     <td class="text-center fw-bold">${m.hasAnyMarks ? m.aggTotal + '/' + (maxTotal * 2) : '-'}</td>
+                    <td class="text-center fw-bold">${aggPct}</td>
                 </tr>`;
         }).join('');
         return;
