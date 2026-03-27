@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.getElementById('currentUser').textContent = user.name || user.mobileNo;
     checkDatabaseConnection();
+    loadAllUsers();
 });
 
 function checkDatabaseConnection() {
@@ -75,8 +76,90 @@ async function createUser() {
         showStatus('userStatus', 'User created successfully: ' + mobile, true);
         document.getElementById('userMobile').value = '';
         document.getElementById('userPassword').value = '';
+        loadAllUsers(); // Refresh user list
     } catch (error) {
         showStatus('userStatus', 'Error: ' + error.message, false);
+    }
+}
+
+// List all users
+async function loadAllUsers() {
+    const statusEl = document.getElementById('userListStatus');
+    const tableEl = document.getElementById('usersTable');
+    const tbody = document.getElementById('usersTableBody');
+    
+    statusEl.innerHTML = '<div class="status-message status-success">Loading users...</div>';
+    tableEl.style.display = 'none';
+
+    try {
+        const db = firebase.firestore();
+        const snapshot = await db.collection('users').get();
+        
+        if (snapshot.empty) {
+            statusEl.innerHTML = '<div class="status-message status-error">No users found.</div>';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        let index = 0;
+        snapshot.forEach(doc => {
+            index++;
+            const data = doc.data();
+            const role = data.role || 'teacher';
+            const roleBadge = role === 'admin' 
+                ? '<span class="badge bg-danger">Admin</span>' 
+                : '<span class="badge bg-secondary">Teacher</span>';
+            const created = data.createdAt ? new Date(data.createdAt).toLocaleDateString() : '-';
+            const row = document.createElement('tr');
+            row.innerHTML = '<td>' + index + '</td>' +
+                '<td>' + doc.id + '</td>' +
+                '<td>' + (data.name || '-') + '</td>' +
+                '<td>' + roleBadge + '</td>' +
+                '<td>' + created + '</td>';
+            tbody.appendChild(row);
+        });
+
+        statusEl.innerHTML = '<div class="status-message status-success">Total users: ' + index + '</div>';
+        tableEl.style.display = 'table';
+    } catch (error) {
+        statusEl.innerHTML = '<div class="status-message status-error">Error: ' + error.message + '</div>';
+    }
+}
+
+// Reset user password
+async function resetUserPassword() {
+    const mobile = document.getElementById('resetMobile').value.trim();
+    const newPassword = document.getElementById('resetPassword').value;
+
+    if (!mobile || !newPassword) {
+        showStatus('resetStatus', 'Please fill both fields', false);
+        return;
+    }
+
+    if (mobile.length !== 10 || !/^\d+$/.test(mobile)) {
+        showStatus('resetStatus', 'Mobile number must be 10 digits', false);
+        return;
+    }
+
+    try {
+        const db = firebase.firestore();
+        const userRef = db.collection('users').doc(mobile);
+        const snapshot = await userRef.get();
+
+        if (!snapshot.exists) {
+            showStatus('resetStatus', 'User not found: ' + mobile, false);
+            return;
+        }
+
+        await userRef.update({
+            password: newPassword
+        });
+
+        showStatus('resetStatus', 'Password reset successfully for: ' + mobile, true);
+        document.getElementById('resetMobile').value = '';
+        document.getElementById('resetPassword').value = '';
+    } catch (error) {
+        showStatus('resetStatus', 'Error: ' + error.message, false);
     }
 }
 
