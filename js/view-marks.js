@@ -154,35 +154,50 @@ async function loadBothExamMarks() {
             const student = studentMap[admNo];
             if (!student) return;
 
-            const hyData = hyMap[admNo];
-            const yearData = yearMap[admNo];
+            const hyData = hyMap[admNo] || {};
+            const yearData = yearMap[admNo] || {};
 
-            let hyTotal = 0, yearTotal = 0;
+            let hyTotal = 0, yearTotal = 0, aggTotal = 0;
             let hyHasMarks = false, yearHasMarks = false;
+            const hySubjects = {}, yearSubjects = {}, aggSubjects = {};
 
             for (let i = 1; i <= numSubjects; i++) {
-                const hyMark = hyData ? hyData[`sub${i}`] : undefined;
+                const key = `sub${i}`;
+                const hyMark = hyData[key];
+                const yearMark = yearData[key];
+                let hyVal = null, yearVal = null;
+
                 if (hyMark !== undefined && hyMark !== null && hyMark !== '') {
-                    const v = parseInt(hyMark);
-                    if (v !== -1) hyTotal += v;
+                    hyVal = parseInt(hyMark);
+                    if (hyVal !== -1) hyTotal += hyVal;
                     hyHasMarks = true;
                 }
-                const yearMark = yearData ? yearData[`sub${i}`] : undefined;
                 if (yearMark !== undefined && yearMark !== null && yearMark !== '') {
-                    const v = parseInt(yearMark);
-                    if (v !== -1) yearTotal += v;
+                    yearVal = parseInt(yearMark);
+                    if (yearVal !== -1) yearTotal += yearVal;
                     yearHasMarks = true;
                 }
+
+                hySubjects[key] = hyMark;
+                yearSubjects[key] = yearMark;
+
+                // Aggregate per subject: sum of non-absent marks
+                const hv = (hyVal !== null && hyVal !== -1) ? hyVal : 0;
+                const yv = (yearVal !== null && yearVal !== -1) ? yearVal : 0;
+                const bothAbsent = (hyVal === -1 || hyVal === null) && (yearVal === -1 || yearVal === null);
+                aggSubjects[key] = bothAbsent ? null : (hv + yv);
+                if (!bothAbsent) aggTotal += (hv + yv);
             }
 
             allMarks.push({
                 adm_no: admNo,
                 name: student.name,
                 roll: student.roll,
-                hyTotal: hyHasMarks ? hyTotal : null,
-                yearTotal: yearHasMarks ? yearTotal : null,
-                aggregate: (hyHasMarks ? hyTotal : 0) + (yearHasMarks ? yearTotal : 0),
+                hySubjects, yearSubjects, aggSubjects,
+                hyTotal, yearTotal, aggTotal,
+                hyHasMarks, yearHasMarks,
                 hasAnyMarks: hyHasMarks || yearHasMarks,
+                aggregate: aggTotal,
                 maxTotal: maxTotal
             });
         });
@@ -197,18 +212,24 @@ async function loadBothExamMarks() {
 }
 
 function setupBothExamTable() {
+    const subjects = JSON.parse(sessionStorage.getItem('classSubjects') || '[]');
     const numSubjects = getNumSubjectsForClass(selectedClass);
     const maxMarks = getMaxMarksForClass(selectedClass);
-    const maxTotal = maxMarks * numSubjects;
+
+    let subjectHeaders = '';
+    for (let i = 0; i < numSubjects; i++) {
+        const name = subjects[i] ? subjects[i].name : `S${i + 1}`;
+        subjectHeaders += `<th class="text-center">${name}</th>`;
+    }
 
     const thead = document.querySelector('#marksTable thead');
     thead.innerHTML = `
         <tr>
             <th>Roll</th>
             <th>Name</th>
-            <th class="text-center">HY Total<br><small>(Out of ${maxTotal})</small></th>
-            <th class="text-center">Yearly Total<br><small>(Out of ${maxTotal})</small></th>
-            <th class="text-center fw-bold">Aggregate<br><small>(Out of ${maxTotal * 2})</small></th>
+            <th>Exam</th>
+            ${subjectHeaders}
+            <th class="text-center fw-bold">Total</th>
             <th class="text-center fw-bold" id="rankColBoth" style="display:none;">Rank</th>
         </tr>`;
 }
@@ -245,18 +266,51 @@ function displayMarks(marks) {
     }
 
     if (isBothMode) {
+        const numSubjects = getNumSubjectsForClass(selectedClass);
+        const maxMarks = getMaxMarksForClass(selectedClass);
+        const maxTotal = maxMarks * numSubjects;
+        const cols = 3 + numSubjects + 1 + (showRank ? 1 : 0);
+
         tableBody.innerHTML = marks.map(m => {
-            const maxTotal = m.maxTotal;
-            const rankCell = showRank ? `<td class="text-center fw-bold">${m._rank !== undefined ? m._rank : '-'}</td>` : '';
-            const rowClass = !m.hasAnyMarks ? 'table-secondary' : '';
+            const rankCell = showRank ? `<td rowspan="3" class="text-center fw-bold align-middle">${m._rank !== undefined ? m._rank : '-'}</td>` : '';
+
+            // HY row marks
+            let hyCells = '';
+            for (let i = 1; i <= numSubjects; i++) {
+                hyCells += `<td class="text-center">${formatMark(m.hySubjects[`sub${i}`], maxMarks)}</td>`;
+            }
+
+            // Yearly row marks
+            let yearCells = '';
+            for (let i = 1; i <= numSubjects; i++) {
+                yearCells += `<td class="text-center">${formatMark(m.yearSubjects[`sub${i}`], maxMarks)}</td>`;
+            }
+
+            // Aggregate row marks
+            let aggCells = '';
+            for (let i = 1; i <= numSubjects; i++) {
+                const val = m.aggSubjects[`sub${i}`];
+                aggCells += `<td class="text-center fw-bold">${val !== null ? val : '-'}</td>`;
+            }
+
             return `
-                <tr class="${rowClass}">
-                    <td class="fw-bold">${m.roll || '-'}</td>
-                    <td>${m.name || '-'}</td>
-                    <td class="text-center">${m.hyTotal !== null ? m.hyTotal + '/' + maxTotal : '-'}</td>
-                    <td class="text-center">${m.yearTotal !== null ? m.yearTotal + '/' + maxTotal : '-'}</td>
-                    <td class="text-center fw-bold">${m.hasAnyMarks ? m.aggregate + '/' + (maxTotal * 2) : '-'}</td>
+                <tr class="border-top">
+                    <td rowspan="3" class="fw-bold align-middle">${m.roll || '-'}</td>
+                    <td rowspan="3" class="align-middle">${m.name || '-'}</td>
+                    <td><span class="badge bg-info">HY</span></td>
+                    ${hyCells}
+                    <td class="text-center">${m.hyHasMarks ? m.hyTotal + '/' + maxTotal : '-'}</td>
                     ${rankCell}
+                </tr>
+                <tr>
+                    <td><span class="badge bg-primary">Yearly</span></td>
+                    ${yearCells}
+                    <td class="text-center">${m.yearHasMarks ? m.yearTotal + '/' + maxTotal : '-'}</td>
+                </tr>
+                <tr class="table-warning">
+                    <td><span class="badge bg-dark">Agg</span></td>
+                    ${aggCells}
+                    <td class="text-center fw-bold">${m.hasAnyMarks ? m.aggTotal + '/' + (maxTotal * 2) : '-'}</td>
                 </tr>`;
         }).join('');
         return;
